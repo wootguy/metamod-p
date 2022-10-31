@@ -386,7 +386,7 @@ static void mm_CVarSetString(const char *szVarName, const char *szValue) {
 	RETURN_API_void()
 }
 
-static void mm_AlertMessage(ALERT_TYPE atype, char *szFmt, ...) {
+static void mm_AlertMessage(ALERT_TYPE atype, const char *szFmt, ...) {
 	META_ENGINE_HANDLE_void_varargs(FN_ALERTMESSAGE, pfnAlertMessage, ipV, atype, szFmt);
 	RETURN_API_void()
 }
