@@ -694,10 +694,17 @@ mBOOL DLLINTERNAL MPlugin::query(void) {
 	
 	// pass on engine function table and globals to plugin
 	if(!(pfn_give_engfuncs = (GIVE_ENGINE_FUNCTIONS_FN) DLSYM(handle, "GiveFnptrsToDll"))) {
-		// META_WARNING("dll: Couldn't find GiveFnptrsToDll() in plugin '%s': %s", desc, DLERROR());
-		META_WARNING("dll: Failed query plugin '%s'; Couldn't find GiveFnptrsToDll(): %s", desc, DLERROR());
-		// caller will dlclose()
-		RETURN_ERRNO(mFALSE, ME_DLMISSING);
+
+		// this magic "@8" code from hzqst fixes plugins not loading -w00tguy
+		pfn_give_engfuncs = (GIVE_ENGINE_FUNCTIONS_FN)DLSYM(handle, "_GiveFnptrsToDll@8");
+
+		if (!pfn_give_engfuncs)
+		{
+			// META_WARNING("dll: Couldn't find GiveFnptrsToDll() in plugin '%s': %s", desc, DLERROR());
+			META_WARNING("dll: Failed query plugin '%s'; Couldn't find GiveFnptrsToDll(): %s", desc, DLERROR());
+			// caller will dlclose()
+			RETURN_ERRNO(mFALSE, ME_DLMISSING);
+		}
 	}
 	pfn_give_engfuncs(Engine.pl_funcs, Engine.globals);
 	META_DEBUG(6, ("dll: Plugin '%s': Called GiveFnptrsToDll()", desc));
