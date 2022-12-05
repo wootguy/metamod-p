@@ -1,2 +1,5 @@
 #temporary files
 *~
+/metamod/Debug
+/metamod/Release
+/metamod/.vs
