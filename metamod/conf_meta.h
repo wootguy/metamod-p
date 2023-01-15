@@ -90,6 +90,7 @@ class MConfig : public class_metamod_new {
 		char *exec_cfg;		// ie metaexec.cfg, exec.cfg
 		int autodetect;		// autodetection of gamedll (Metamod-All-Support patch)
 		int clientmeta;         // control 'meta' client-command
+		int slowhooks;         // disable expensive hooks if 0
 		// functions
 		void DLLINTERNAL init(option_t *global_options);
 		mBOOL DLLINTERNAL load(const char *filename);
