@@ -62,13 +62,14 @@ cvar_t meta_version = {"metamod_version", VVERSION, FCVAR_SERVER, 0, NULL};
 MConfig static_config;
 MConfig *Config=&static_config;
 option_t global_options[] = {
-	{ "debuglevel",		CF_INT,			&Config->debuglevel,	"0" },
-	{ "gamedll",		CF_PATH,		&Config->gamedll,		NULL },
-	{ "plugins_file",	CF_PATH,		&Config->plugins_file,	PLUGINS_INI },
-	{ "exec_cfg",		CF_STR,			&Config->exec_cfg,		EXEC_CFG },
-	{ "autodetect",		CF_BOOL,		&Config->autodetect,	"yes" },
-	{ "clientmeta",		CF_BOOL,		&Config->clientmeta,	"yes" },
-	{ "slowhooks",		CF_BOOL,		&Config->slowhooks,		"yes" },
+	{ "debuglevel",			CF_INT,			&Config->debuglevel,	"0" },
+	{ "gamedll",			CF_PATH,		&Config->gamedll,		NULL },
+	{ "plugins_file",		CF_PATH,		&Config->plugins_file,	PLUGINS_INI },
+	{ "exec_cfg",			CF_STR,			&Config->exec_cfg,		EXEC_CFG },
+	{ "autodetect",			CF_BOOL,		&Config->autodetect,	"yes" },
+	{ "clientmeta",			CF_BOOL,		&Config->clientmeta,	"yes" },
+	{ "slowhooks",			CF_BOOL,		&Config->slowhooks,		"yes" },
+	{ "slowhooks_whitelist",CF_PATH,		&Config->slowhooks_whitelist,		SLOWHOOKS_INI },
 	// list terminator
 	{ NULL, CF_NONE, NULL, NULL }
 };
@@ -91,6 +92,15 @@ int requestid_counter = 0;
 DLHANDLE metamod_handle;
 int metamod_not_loaded = 0;
 
+meta_enginefuncs_t g_slow_hooks_table_engine;
+DLL_FUNCTIONS g_slow_hooks_table_dll;
+NEW_DLL_FUNCTIONS g_slow_hooks_table_newdll;
+
+meta_enginefuncs_t g_fast_hooks_table_engine;
+DLL_FUNCTIONS g_fast_hooks_table_dll;
+NEW_DLL_FUNCTIONS g_fast_hooks_table_newdll;
+
+DLL_FUNCTIONS* g_engine_dll_funcs_table;
 
 // Very first metamod function that's run.
 // Do startup operations...
@@ -194,6 +204,10 @@ int DLLINTERNAL metamod_startup(void) {
 	if ((cp = LOCALINFO("mm_slowhooks")) && *cp != '\0') {
 		META_LOG("Slowhooks specified via localinfo: %s", cp);
 		Config->set("slowhooks", cp);
+	}
+	if ((cp = LOCALINFO("mm_slowhooks_whitelist")) && *cp != '\0') {
+		META_LOG("Slowhooks whitelist specified via localinfo: %s", cp);
+		Config->set("slowhooks_whitelist", cp);
 	}
 
 
@@ -379,6 +393,7 @@ mBOOL DLLINTERNAL meta_load_gamedll(void) {
 	if((pfn_give_engfuncs = (GIVE_ENGINE_FUNCTIONS_FN) DLSYM(GameDLL.handle, "GiveFnptrsToDll")))
 	{
 		if (!Config->slowhooks) {
+			memcpy(&g_slow_hooks_table_engine, &meta_engfuncs, sizeof(meta_enginefuncs_t));
 			// disabling expensive hooks to improve linux performance
 			meta_engfuncs.pfnCheckVisibility = Engine.funcs->pfnCheckVisibility;
 			meta_engfuncs.pfnIndexOfEdict = Engine.funcs->pfnIndexOfEdict;
@@ -495,6 +510,8 @@ mBOOL DLLINTERNAL meta_load_gamedll(void) {
 			meta_engfuncs.pfnQueryClientCvarValue = Engine.funcs->pfnQueryClientCvarValue;
 			meta_engfuncs.pfnQueryClientCvarValue2 = Engine.funcs->pfnQueryClientCvarValue2;
 			meta_engfuncs.pfnEngCheckParm = Engine.funcs->pfnEngCheckParm;
+
+			memcpy(&g_fast_hooks_table_engine, &meta_engfuncs, sizeof(meta_enginefuncs_t));
 		}
 
 		pfn_give_engfuncs(&meta_engfuncs, gpGlobals);

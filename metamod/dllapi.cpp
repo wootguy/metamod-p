@@ -44,6 +44,7 @@
 #include "commands_meta.h"	// client_meta, etc
 #include "log_meta.h"		// META_ERROR, etc
 #include "api_hook.h"
+#include "h_export.h"
 
 
 // Original DLL routines, functions returning "void".
@@ -173,7 +174,58 @@ static void mm_ClientUserInfoChanged(edict_t *pEntity, char *infobuffer) {
 	META_DLLAPI_HANDLE_void(FN_CLIENTUSERINFOCHANGED, pfnClientUserInfoChanged, 2p, (pEntity, infobuffer));
 	RETURN_API_void();
 }
+bool shouldExpensiveHooksBeEnabled(const char* gameMap) {
+	FILE* fp;
+	char loadfile[PATH_MAX];
+	char line[MAX_MAPNAME_LENGTH];
+
+	// Make full pathname (from gamedir if relative, collapse "..", backslashes, etc).
+	full_gamedir_path(Config->slowhooks_whitelist, loadfile);
+
+	fp = fopen(loadfile, "r");
+	if (!fp) {
+		META_WARNING("unable to open slowhook whitelist file '%s': %s", loadfile, strerror(errno));
+		return false;
+	}
+
+	bool shouldEnable = false;
+
+	META_DEBUG(2, ("Loading from slowhooks whitelist: %s", loadfile));
+	for (int ln = 1; !feof(fp) && fgets(line, sizeof(line), fp); ln++) {
+		if (line[0] == '#')
+			continue;
+		if (line[0] == ';')
+			continue;
+		if (strnmatch(line, "//", 2))
+			continue;
+		char* fileMap = strtok(line, " \t\r\n");
+
+		if (!strcasematch(fileMap, gameMap)) {
+			shouldEnable = true;
+			break;
+		}
+	}
+	fclose(fp);
+
+	return shouldEnable;
+}
 static void mm_ServerActivate(edict_t *pEdictList, int edictCount, int clientMax) {
+
+	if (!Config->slowhooks) {
+		GIVE_ENGINE_FUNCTIONS_FN pfn_give_engfuncs = (GIVE_ENGINE_FUNCTIONS_FN)DLSYM(GameDLL.handle, "GiveFnptrsToDll");
+
+		if (shouldExpensiveHooksBeEnabled(STRING(gpGlobals->mapname))) {
+			META_WARNING("Expensive metamod hooks enabled.");
+			pfn_give_engfuncs(&g_slow_hooks_table_engine, gpGlobals);
+			memcpy(g_engine_dll_funcs_table, &g_slow_hooks_table_dll, sizeof(DLL_FUNCTIONS));
+		}
+		else {
+			META_WARNING("Expensive metamod hooks disabled.");
+			pfn_give_engfuncs(&g_fast_hooks_table_engine, gpGlobals);
+			memcpy(g_engine_dll_funcs_table, &g_fast_hooks_table_dll, sizeof(DLL_FUNCTIONS));
+		}
+	}
+
 	META_DLLAPI_HANDLE_void(FN_SERVERACTIVATE, pfnServerActivate, p2i, (pEdictList, edictCount, clientMax));
 	RETURN_API_void();
 }
@@ -458,6 +510,8 @@ C_DLLEXPORT int GetEntityAPI2(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersi
 	}
 
 	if (!Config->slowhooks) {
+		memcpy(&g_slow_hooks_table_dll, &gFunctionTable, sizeof(DLL_FUNCTIONS));
+
 		// disabling expensive hooks to improve linux performance 
 		// AddToFullPack is by far the most expensive (>40% of all hook calls)
 		gFunctionTable.pfnAddToFullPack = GameDLL.funcs.dllapi_table->pfnAddToFullPack;
@@ -486,10 +540,12 @@ C_DLLEXPORT int GetEntityAPI2(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersi
 		gFunctionTable.pfnCreateInstancedBaselines = GameDLL.funcs.dllapi_table->pfnCreateInstancedBaselines;
 		gFunctionTable.pfnInconsistentFile = GameDLL.funcs.dllapi_table->pfnInconsistentFile;
 		gFunctionTable.pfnAllowLagCompensation = GameDLL.funcs.dllapi_table->pfnAllowLagCompensation;
+
+		memcpy(&g_fast_hooks_table_dll, &gFunctionTable, sizeof(DLL_FUNCTIONS));
 	}
 	
-
-	memcpy(pFunctionTable, &gFunctionTable, sizeof(DLL_FUNCTIONS));
+	g_engine_dll_funcs_table = pFunctionTable;
+	memcpy(g_engine_dll_funcs_table, &gFunctionTable, sizeof(DLL_FUNCTIONS));
 	return(TRUE);
 }
 
@@ -541,8 +597,10 @@ C_DLLEXPORT int GetNewDLLFunctions(NEW_DLL_FUNCTIONS *pNewFunctionTable, int *in
 
 	// disabling hooks for improved linux performance
 	if (!Config->slowhooks) {
+		sNewFunctionTable.copy_to(&g_slow_hooks_table_newdll);
 		sNewFunctionTable.pfnShouldCollide = GameDLL.funcs.newapi_table->pfnShouldCollide;
 		sNewFunctionTable.pfnOnFreeEntPrivateData = GameDLL.funcs.newapi_table->pfnOnFreeEntPrivateData;
+		sNewFunctionTable.copy_to(&g_fast_hooks_table_newdll);
 	}
 
 	sNewFunctionTable.copy_to(pNewFunctionTable);
