@@ -68,13 +68,10 @@ void _fini(void) {
 #endif
 
 // Fixed MSVC compiling, by Nikolay "The Storm" Baklicharov.
-/*
 #if defined(_WIN32) && !defined(__GNUC__) && defined (_MSC_VER)
 	#pragma comment(linker, "/EXPORT:GiveFnptrsToDll=_GiveFnptrsToDll@8,@1")
 	#pragma comment(linker, "/SECTION:.data,RW")
 #endif
-*/
-// ^ this isn't working in VS 2022. Using the "@8" name as a fallback in mplugin.cpp works. -w00tguy
 
 //! Holds engine functionality callbacks
 HL_enginefuncs_t g_engfuncs;
