@@ -598,8 +598,10 @@ C_DLLEXPORT int GetNewDLLFunctions(NEW_DLL_FUNCTIONS *pNewFunctionTable, int *in
 	// disabling hooks for improved linux performance
 	if (!Config->slowhooks) {
 		sNewFunctionTable.copy_to(&g_slow_hooks_table_newdll);
-		sNewFunctionTable.pfnShouldCollide = GameDLL.funcs.newapi_table->pfnShouldCollide;
-		sNewFunctionTable.pfnOnFreeEntPrivateData = GameDLL.funcs.newapi_table->pfnOnFreeEntPrivateData;
+		if (GameDLL.funcs.newapi_table) {
+			sNewFunctionTable.pfnShouldCollide = GameDLL.funcs.newapi_table->pfnShouldCollide;
+			sNewFunctionTable.pfnOnFreeEntPrivateData = GameDLL.funcs.newapi_table->pfnOnFreeEntPrivateData;
+		}		
 		sNewFunctionTable.copy_to(&g_fast_hooks_table_newdll);
 	}
 
