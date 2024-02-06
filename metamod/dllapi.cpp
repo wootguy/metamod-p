@@ -215,12 +215,12 @@ static void mm_ServerActivate(edict_t *pEdictList, int edictCount, int clientMax
 		GIVE_ENGINE_FUNCTIONS_FN pfn_give_engfuncs = (GIVE_ENGINE_FUNCTIONS_FN)DLSYM(GameDLL.handle, "GiveFnptrsToDll");
 
 		if (shouldExpensiveHooksBeEnabled(STRING(gpGlobals->mapname))) {
-			META_WARNING("Expensive metamod hooks enabled.");
+			META_DEBUG(3, ("Expensive metamod hooks enabled."));
 			pfn_give_engfuncs(&g_slow_hooks_table_engine, gpGlobals);
 			memcpy(g_engine_dll_funcs_table, &g_slow_hooks_table_dll, sizeof(DLL_FUNCTIONS));
 		}
 		else {
-			META_WARNING("Expensive metamod hooks disabled.");
+			META_DEBUG(3, ("Expensive metamod hooks disabled."));
 			pfn_give_engfuncs(&g_fast_hooks_table_engine, gpGlobals);
 			memcpy(g_engine_dll_funcs_table, &g_fast_hooks_table_dll, sizeof(DLL_FUNCTIONS));
 		}

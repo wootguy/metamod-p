@@ -454,7 +454,7 @@ mBOOL DLLINTERNAL MPluginList::ini_refresh() {
 		RETURN_ERRNO(mFALSE, ME_NOFILE);
 	}
 
-	META_LOG("ini: Begin re-reading plugins list: %s", inifile);
+	META_DEBUG(3, ("ini: Begin re-reading plugins list: %s", inifile));
 	for(n=0, ln=1; !feof(fp) && fgets(line, sizeof(line), fp) && n < size; ln++) 
 	{
 		// Remove line terminations.
@@ -534,14 +534,14 @@ mBOOL DLLINTERNAL MPluginList::ini_refresh() {
 						pl_found->desc, pl_found->str_status());
 		}
 		if(NULL != pl_found) {
-			META_LOG("ini: Read plugin config for: %s", pl_found->desc);
+			META_DEBUG(3, ("ini: Read plugin config for: %s", pl_found->desc));
 		}
 		else {
-			META_LOG("ini: Read plugin config for: %s", pl_temp.desc);
+			META_DEBUG(3, ("ini: Read plugin config for: %s", pl_temp.desc));
 		}
 		n++;
 	}
-	META_LOG("ini: Finished reading plugins list: %s; Found %d plugins", inifile, n);
+	META_DEBUG(3, ("ini: Finished reading plugins list: %s; Found %d plugins", inifile, n));
 
 	fclose(fp);
 	if(!n) {
@@ -732,7 +732,7 @@ mBOOL DLLINTERNAL MPluginList::refresh(PLUG_LOADTIME now) {
 		return(mFALSE);
 	}
 
-	META_LOG("dll: Updating plugins...");
+	META_DEBUG(3, ("dll: Updating plugins..."));
 	for(i=0; i < endlist; i++) {
 		iplug=&plist[i];
 		if(iplug->status < PL_VALID)
@@ -793,8 +793,8 @@ mBOOL DLLINTERNAL MPluginList::refresh(PLUG_LOADTIME now) {
 		}
 		ndone++;
 	}
-	META_LOG("dll: Finished updating %d plugins; kept %d, loaded %d, unloaded %d, reloaded %d, delayed %d", 
-			ndone, nkept, nloaded, nunloaded, nreloaded, ndelayed);
+	META_DEBUG(3, ("dll: Finished updating %d plugins; kept %d, loaded %d, unloaded %d, reloaded %d, delayed %d",
+			ndone, nkept, nloaded, nunloaded, nreloaded, ndelayed));
 	return(mTRUE);
 }
 
